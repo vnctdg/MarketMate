@@ -1,4 +1,4 @@
 # MarketMate
 MarketMate ADET
-<strong>Market mate is an app made by us i guess
-<br>please send help
+Market mate is an app made by us i guess
+<strong><br>please send help</strong>
