@@ -23,4 +23,26 @@
 
 ---
 
+## Target Users
 
+- Shoppers looking to save time on grocery shopping.
+- Local vendors aiming to expand their customer base.
+
+---
+
+## Expected Benefits
+
+- **For Buyers**  
+  Saves time and effort by providing up-to-date product listings and easy access to local markets.
+
+- **For Vendors**  
+  Helps small vendors reach more customers, increasing their sales and market presence.
+
+- **For Both**  
+  Reduces unnecessary trips and ensures accurate availability of products.
+
+---
+
+## Roles of Contributors
+
+(TO BE ADDED/DECIDED)
