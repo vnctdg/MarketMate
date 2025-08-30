@@ -1,6 +1,6 @@
 {
-    "name": "works",
-    "short_name": "works",
+    "name": "marketmate",
+    "short_name": "marketmate",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,4 +1,4 @@
-package com.example.works
+package com.example.marketmate
 
 import io.flutter.embedding.android.FlutterActivity
 
