@@ -49,30 +49,31 @@
 
 ## 🧑‍🤝‍🧑 🤝 Roles of Contributors
 
-- Programmers: Committing feature code, bug fixes, and refactoring.
-- UI/UX Designers: Committing assets, theme adjustments, or minor layout and styling code.
-- Technical Writers: Adding code comments, where applicable
-- Support & Maintenance: Handles future fixes and updates (post-project role).
-- System Analyst: Analyzes requirements, ensures the app meets the intended goals.
-- Front-end Developer: Focuses on user interface and interaction (Flutter UI side).
+- **Programmers:** Committing feature code, bug fixes, and refactoring.
+- **UI/UX Designers:** Committing assets, theme adjustments, or minor layout and styling code.
+- **Technical Writers:** Adding code comments, where applicable
+- **Support & Maintenance:** Handles future fixes and updates (post-project role).
+- **System Analyst:** Analyzes requirements, ensures the app meets the intended goals.
+- **Front-end Developer:** Focuses on user interface and interaction (Flutter UI side).
 
-     Programmers:  
-     - Galura, Bart Vincent D. Obispo, Ginelle Anne D.  
-     UI/UX Designers:
-     - Galura, Bart Vincent D. Obispo, Ginelle Anne D.  
-     Technical Writers: (Name)
-     -
-     Support & Maintenance:
-     - Galura, Bart Vincent D.  
-     System Analyst:
-     - Galura, Bart Vincent D.  
-     Front-end Developer:
-     - Obispo, Ginelle Anne D.  
- 
+---
+- **Programmers:**  
+  Galura, Bart Vincent D. Obispo, Ginelle Anne D.
+- **UI/UX Designers:**  
+  Galura, Bart Vincent D. Obispo, Ginelle Anne D.
+- **Technical Writers:**  
+  (Name)  
+- **Support & Maintenance:**   
+  Galura, Bart Vincent D.
+- **System Analyst:**  
+  Galura, Bart Vincent D.
+- **Front-end Developer:**  
+  Obispo, Ginelle Anne D.  
 
 ---
 
 (TO BE ADDED/DECIDED)
+
 
 
 
