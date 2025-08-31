@@ -58,13 +58,13 @@
 
 ---
 - **Programmers:**  
-  Galura, Bart Vincent D. Obispo, Ginelle Anne D.
+  Galura, Bart Vincent D. | Obispo, Ginelle Anne D. | Ahmad, Saeed Sadeq Ali S.
 - **UI/UX Designers:**  
-  Galura, Bart Vincent D. Obispo, Ginelle Anne D.
+  Galura, Bart Vincent D. | Obispo, Ginelle Anne D. 
 - **Technical Writers:**  
   (Name)  
 - **Support & Maintenance:**   
-  Galura, Bart Vincent D.
+  Galura, Bart Vincent D. | Ahmad, Saeed Sadeq Ali S.
 - **System Analyst:**  
   Galura, Bart Vincent D.
 - **Front-end Developer:**  
