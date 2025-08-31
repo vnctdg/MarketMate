@@ -93,3 +93,31 @@ class GroceryItem {
         checked: m['checked'] ?? false,
       );
 }
+
+class GroceryListSnapshot {
+  final String id;
+  final String title; // e.g., date or custom label
+  final DateTime createdAt;
+  final List<GroceryItem> items;
+  final double budget;
+
+  GroceryListSnapshot({required this.id, required this.title, required this.createdAt, required this.items, required this.budget});
+
+  double get total => items.fold(0.0, (s, e) => s + e.price);
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'createdAt': createdAt.toIso8601String(),
+        'budget': budget,
+        'items': items.map((e) => e.toJson()).toList(),
+      };
+
+  static GroceryListSnapshot fromJson(Map<String, dynamic> m) => GroceryListSnapshot(
+        id: m['id'],
+        title: m['title'],
+        createdAt: DateTime.parse(m['createdAt']),
+        budget: (m['budget'] as num).toDouble(),
+        items: (m['items'] as List).map((e) => GroceryItem.fromJson(e)).toList(),
+      );
+}
