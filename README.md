@@ -56,15 +56,16 @@
 - System Analyst: Analyzes requirements, ensures the app meets the intended goals.
 - Front-end Developer: Focuses on user interface and interaction (Flutter UI side).
 
-     Programmers: (Name)  
-     UI/UX Designers: (Name)  
+     Programmers: Obispo, Ginelle Anne D.    
+     UI/UX Designers: Obispo, Ginelle Anne D.  
      Technical Writers: (Name)  
      Support & Maintenance: (Name)  
      System Analyst: (Name)  
-     Front-end Developer: (Name)  
+     Front-end Developer: Obispo, Ginelle Anne D.  
  
 
 ---
 
 (TO BE ADDED/DECIDED)
+
 
