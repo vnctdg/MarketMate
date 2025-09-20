@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
-import 'pages/grocery_page.dart';
-import 'pages/items_page.dart';
-import 'pages/history_page.dart';
+import '/grocery_page.dart';
+import '/items_page.dart';
+import '/history_page.dart';
 import 'theme.dart';
 
 void main() {

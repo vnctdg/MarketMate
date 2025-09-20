@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-import '../app_state.dart';
-import '../widgets/budget_card.dart';
-import '../models.dart';
+import 'app_state.dart';
+import 'budget_card.dart';
+import 'models.dart';
 
 class GroceryPage extends StatefulWidget {
   const GroceryPage({super.key});
