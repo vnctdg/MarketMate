@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../app_state.dart';
-import '../models.dart';
+
+import 'app_state.dart';
+import 'models.dart';
+import 'services/ai_service.dart';
 import 'gradient_progress.dart';
 
 class BudgetCard extends StatefulWidget {
   const BudgetCard({super.key});
-
   @override
   State<BudgetCard> createState() => _BudgetCardState();
 }
@@ -234,6 +235,32 @@ class _BudgetCardState extends State<BudgetCard> with SingleTickerProviderStateM
                             ),
                           ],
                         ),
+                        // AI Budget Optimization Hint
+                        if (over)
+                          Container(
+                            margin: const EdgeInsets.only(top: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Theme.of(context).colorScheme.error.withOpacity(0.5)),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.psychology, size: 16, color: Theme.of(context).colorScheme.error),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'AI suggests checking Insights for budget optimization tips',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.error,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
