@@ -4,6 +4,7 @@ import 'app_state.dart';
 import '/grocery_page.dart';
 import '/items_page.dart';
 import '/history_page.dart';
+import '/ai_insights_page.dart';
 import 'theme.dart';
 
 void main() {
@@ -130,6 +131,7 @@ class _MainNavigationState extends State<MainNavigation> {
     GroceryPage(),
     ItemsPage(),
     HistoryPage(),
+    AIInsightsPage(),
   ];
 
   @override
@@ -154,6 +156,11 @@ class _MainNavigationState extends State<MainNavigation> {
             icon: Icon(Icons.history_outlined),
             selectedIcon: Icon(Icons.history),
             label: "History",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.psychology_outlined),
+            selectedIcon: Icon(Icons.psychology),
+            label: "AI Insights",
           ),
         ],
       ),
