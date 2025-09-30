@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-import '../app_state.dart';
-import '../models.dart';
+import 'app_state.dart';
+import 'models.dart';
+import 'services/ai_service.dart';
 
 class ItemsPage extends StatefulWidget {
   const ItemsPage({super.key});
@@ -12,10 +13,96 @@ class ItemsPage extends StatefulWidget {
   State<ItemsPage> createState() => _ItemsPageState();
 }
 
-class _ItemsPageState extends State<ItemsPage> {
+class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
   String _query = '';
   final ImagePicker _picker = ImagePicker();
   String? _pickedImagePath;
+  final AIService _aiService = AIService();
+  late AnimationController _searchAnimationController;
+  late Animation<double> _searchSlideAnimation;
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _searchSlideAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _searchAnimationController, curve: Curves.easeInOut),
+    );
+    
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _isSearchFocused = _searchFocusNode.hasFocus;
+        if (_isSearchFocused) {
+          _searchAnimationController.forward();
+        } else {
+          _searchAnimationController.reverse();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchAnimationController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  // Helper method to ask user for quantity when adding items
+  Future<int?> _askForQuantity(BuildContext context, String itemName) async {
+    final formKey = GlobalKey<FormState>();
+    final quantityCtrl = TextEditingController(text: '1');
+    
+    return await showDialog<int?>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('How many $itemName?'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: quantityCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Quantity',
+              hintText: 'Enter number of items',
+              prefixIcon: Icon(Icons.numbers),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Quantity cannot be empty';
+              }
+              final parsed = int.tryParse(value);
+              if (parsed == null || parsed <= 0) {
+                return 'Enter a valid positive number';
+              }
+              return null;
+            },
+            autofocus: true,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancel', style: Theme.of(context).textButtonTheme.style?.textStyle?.resolve(MaterialState.values.toSet())?.copyWith(color: Theme.of(context).colorScheme.primary)),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                final quantity = int.tryParse(quantityCtrl.text) ?? 1;
+                Navigator.pop(dialogContext, quantity);
+              }
+            },
+            child: Text('Add', style: Theme.of(context).filledButtonTheme.style?.textStyle?.resolve(MaterialState.values.toSet())?.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _addSaved(BuildContext context) async {
     final formKey = GlobalKey<FormState>();
@@ -144,8 +231,13 @@ class _ItemsPageState extends State<ItemsPage> {
     final app = context.read<AppState>();
     final found = app.savedItems.where((e) => e.barcode == code).toList();
     if (found.isNotEmpty) {
-      await app.addItem(found.first);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Found saved item: "${found.first.name}" (₱${found.first.price.toStringAsFixed(2)})')));
+      // Ask for quantity when adding from barcode scan
+      final quantityResult = await _askForQuantity(context, found.first.name);
+      if (quantityResult != null) {
+        final itemWithQuantity = found.first.copyWith(id: makeId(), quantity: quantityResult);
+        await app.addItem(itemWithQuantity);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added ${quantityResult}x ${found.first.name} from barcode')));
+      }
       return;
     }
 
@@ -241,9 +333,26 @@ class _ItemsPageState extends State<ItemsPage> {
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(builder: (context, app, _) {
-      final items = app.savedItems.where((e) => e.name.toLowerCase().contains(_query.toLowerCase()) || (e.barcode ?? '').contains(_query)).toList();
+      // Use AI-powered smart search instead of simple string matching
+      final items = _query.isEmpty 
+        ? app.savedItems 
+        : _aiService.smartSearch(_query, app.savedItems);
+      
       return Scaffold(
-        appBar: AppBar(title: const Text('My Saved Items'), actions: [
+        appBar: AppBar(
+          title: Row(
+            children: [
+              Hero(
+                tag: 'items-icon',
+                child: Icon(Icons.inventory_2, color: Theme.of(context).colorScheme.primary),
+              ),
+              const SizedBox(width: 8),
+              const Text('My Saved Items'),
+            ],
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          actions: [
           IconButton(
             onPressed: () => _mockScan(context),
             icon: Icon(Icons.barcode_reader, size: 28, color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -260,17 +369,81 @@ class _ItemsPageState extends State<ItemsPage> {
           child: Column(children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: TextField(
-                decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  hintText: 'Search saved items by name or barcode',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: _isSearchFocused ? [
+                    BoxShadow(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ] : [],
                 ),
-                onChanged: (v) => setState(() => _query = v),
+                child: TextField(
+                  focusNode: _searchFocusNode,
+                  decoration: InputDecoration(
+                    prefixIcon: AnimatedRotation(
+                      turns: _searchSlideAnimation.value * 0.5,
+                      duration: const Duration(milliseconds: 300),
+                      child: Icon(
+                        _isSearchFocused ? Icons.psychology : Icons.search, 
+                        color: _isSearchFocused 
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    suffixIcon: _query.isNotEmpty ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(() => _query = ''),
+                    ) : null,
+                    hintText: _isSearchFocused 
+                      ? 'AI-powered smart search...' 
+                      : 'Search saved items by name or barcode',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: _isSearchFocused 
+                      ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                      : Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
               ),
             ),
+            if (_query.isNotEmpty)
+              SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, -1),
+                  end: Offset.zero,
+                ).animate(_searchAnimationController),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.psychology, 
+                           size: 16, 
+                           color: Theme.of(context).colorScheme.secondary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'AI found ${items.length} matching items',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             Expanded(
               child: items.isEmpty ? Center(child: Padding(padding: const EdgeInsets.all(32), child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -341,9 +514,13 @@ class _ItemsPageState extends State<ItemsPage> {
                                 trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                                   IconButton(
                                     onPressed: () async {
-                                      final copy = e.copyWith(id: makeId());
-                                      await app.addItem(copy, persistSaved: false);
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added "${e.name}" to current list!')));
+                                      // Ask for quantity when adding from saved items
+                                      final quantity = await _askForQuantity(context, e.name);
+                                      if (quantity != null) {
+                                        final copy = e.copyWith(id: makeId(), quantity: quantity);
+                                        await app.addItem(copy, persistSaved: false);
+                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added ${quantity}x "${e.name}" to current list!')));
+                                      }
                                     },
                                     icon: Icon(Icons.add_shopping_cart, color: Theme.of(context).colorScheme.secondary),
                                     tooltip: 'Add to current list',
