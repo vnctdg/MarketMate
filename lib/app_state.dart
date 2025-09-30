@@ -17,7 +17,7 @@ class AppState extends ChangeNotifier {
   List<GroceryListSnapshot> get history => List.unmodifiable(_history);
 
   // Derived properties
-  double get total => _currentItems.fold(0.0, (s, e) => s + e.price);
+  double get total => _currentItems.fold(0.0, (s, e) => s + e.totalPrice);
   double get remaining => (budget - total);
   bool get isOverBudget => budget > 0 && total > budget;
   double get progress => budget <= 0 ? 0.0 : (total / budget).clamp(0.0, 1.0);
@@ -109,4 +109,5 @@ class AppState extends ChangeNotifier {
     await Storage.setCurrentItems(_currentItems);
     notifyListeners();
   }
+
 }
