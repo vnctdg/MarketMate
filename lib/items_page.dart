@@ -206,7 +206,7 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
     final formKey = GlobalKey<FormState>();
     final ctrl = TextEditingController();
     final code = await showDialog<String?>(context: context, builder: (_) => AlertDialog(
-      title: const Text('Mock Barcode Scan'),
+      title: const Text('Barcode Scan'),
       content: Form(
         key: formKey,
         child: TextFormField(
