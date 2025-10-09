@@ -144,7 +144,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final _pages = const [
     GroceryPage(),
     ItemsPage(),
-    GroceryPage(),
+    BarcodePage(),
     AIInsightsPage(),
     HistoryPage(),
   ];
