@@ -94,7 +94,7 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
             child: Text(
               'Cancel',
               style: Theme.of(context).textButtonTheme.style?.textStyle
-                  ?.resolve(MaterialState.values.toSet())
+                  ?.resolve(WidgetState.values.toSet())
                   ?.copyWith(color: Theme.of(context).colorScheme.primary),
             ),
           ),
@@ -108,7 +108,7 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
             child: Text(
               'Add item(s)',
               style: Theme.of(context).filledButtonTheme.style?.textStyle
-                  ?.resolve(MaterialState.values.toSet())
+                  ?.resolve(WidgetState.values.toSet())
                   ?.copyWith(color: Theme.of(context).colorScheme.onPrimary),
             ),
           ),
@@ -154,7 +154,7 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.surfaceVariant.withOpacity(0.5),
+                          ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: Theme.of(
@@ -236,7 +236,7 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
                 child: Text(
                   'Cancel',
                   style: Theme.of(context).textButtonTheme.style?.textStyle
-                      ?.resolve(MaterialState.values.toSet())
+                      ?.resolve(WidgetState.values.toSet())
                       ?.copyWith(color: Theme.of(context).colorScheme.primary),
                 ),
               ),
@@ -264,230 +264,7 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
                 child: Text(
                   'Save Item',
                   style: Theme.of(context).filledButtonTheme.style?.textStyle
-                      ?.resolve(MaterialState.values.toSet())
-                      ?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-    if (result != null) {
-      await context.read<AppState>().addSavedItem(result);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${result.name} saved successfully!')),
-      );
-    }
-  }
-
-  Future<void> _mockScan(BuildContext context) async {
-    final formKey = GlobalKey<FormState>();
-    final ctrl = TextEditingController();
-    final code = await showDialog<String?>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Barcode Scan'),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: ctrl,
-            decoration: const InputDecoration(labelText: 'Enter Barcode Value'),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Barcode cannot be empty';
-              }
-              return null;
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: Theme.of(context).textButtonTheme.style?.textStyle
-                  ?.resolve(MaterialState.values.toSet())
-                  ?.copyWith(color: Theme.of(context).colorScheme.primary),
-            ),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (formKey.currentState?.validate() ?? false) {
-                Navigator.pop(context, ctrl.text.trim());
-              }
-            },
-            child: Text(
-              'Scan',
-              style: Theme.of(context).filledButtonTheme.style?.textStyle
-                  ?.resolve(MaterialState.values.toSet())
-                  ?.copyWith(color: Theme.of(context).colorScheme.onPrimary),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (code == null || code.isEmpty) return;
-    final app = context.read<AppState>();
-    final found = app.savedItems.where((e) => e.barcode == code).toList();
-    if (found.isNotEmpty) {
-      // Ask for quantity when adding from barcode scan
-      final quantityResult = await _askForQuantity(context, found.first.name);
-      if (quantityResult != null) {
-        final itemWithQuantity = found.first.copyWith(
-          id: makeId(),
-          quantity: quantityResult,
-        );
-        await app.addItem(itemWithQuantity);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Added ${quantityResult}x ${found.first.name} from barcode',
-            ),
-          ),
-        );
-      }
-      return;
-    }
-
-    final newFormKey = GlobalKey<FormState>();
-    final nameCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-    _pickedImagePath = null;
-    final result = await showDialog<GroceryItem?>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (stfContext, setStfState) {
-          return AlertDialog(
-            title: Text('New Item for Barcode: $code'),
-            content: SingleChildScrollView(
-              child: Form(
-                key: newFormKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Barcode: $code',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: () async {
-                        final XFile? image = await _picker.pickImage(
-                          source: ImageSource.gallery,
-                          imageQuality: 50,
-                        );
-                        if (image != null) {
-                          setStfState(() {
-                            _pickedImagePath = image.path;
-                          });
-                        }
-                      },
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceVariant.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outline.withOpacity(0.5),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: _pickedImagePath != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.file(
-                                  File(_pickedImagePath!),
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : Icon(
-                                Icons.add_a_photo,
-                                size: 48,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Item Name'),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Item name cannot be empty';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: priceCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        prefixText: '₱ ',
-                        labelText: 'Default Price',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Price cannot be empty';
-                        }
-                        final parsed = double.tryParse(
-                          value.replaceAll(',', ''),
-                        );
-                        if (parsed == null || parsed <= 0) {
-                          return 'Enter a valid positive price';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(
-                  'Cancel',
-                  style: Theme.of(context).textButtonTheme.style?.textStyle
-                      ?.resolve(MaterialState.values.toSet())
-                      ?.copyWith(color: Theme.of(context).colorScheme.primary),
-                ),
-              ),
-              FilledButton(
-                onPressed: () {
-                  if (newFormKey.currentState?.validate() ?? false) {
-                    final name = nameCtrl.text.trim();
-                    final price = double.tryParse(
-                      priceCtrl.text.replaceAll(',', ''),
-                    );
-                    Navigator.pop(
-                      dialogContext,
-                      GroceryItem(
-                        id: makeId(),
-                        name: name,
-                        price: price!,
-                        barcode: code,
-                        imageUrl: _pickedImagePath,
-                      ),
-                    );
-                  }
-                },
-                child: Text(
-                  'Save Item',
-                  style: Theme.of(context).filledButtonTheme.style?.textStyle
-                      ?.resolve(MaterialState.values.toSet())
+                      ?.resolve(WidgetState.values.toSet())
                       ?.copyWith(
                         color: Theme.of(context).colorScheme.onPrimary,
                       ),
@@ -533,15 +310,6 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
             elevation: 0,
             backgroundColor: Colors.transparent,
             actions: [
-              IconButton(
-                onPressed: () => _mockScan(context),
-                icon: Icon(
-                  Icons.barcode_reader,
-                  size: 28,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                tooltip: 'Scan Barcode for Item',
-              ),
               IconButton(
                 onPressed: () => _addSaved(context),
                 icon: Icon(
@@ -610,7 +378,7 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
                               ).colorScheme.primaryContainer.withOpacity(0.3)
                             : Theme.of(
                                 context,
-                              ).colorScheme.surfaceVariant.withOpacity(0.3),
+                              ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
                       ),
                       onChanged: (v) => setState(() => _query = v),
                     ),
@@ -875,7 +643,7 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
                                                                 .style
                                                                 ?.textStyle
                                                                 ?.resolve(
-                                                                  MaterialState
+                                                                  WidgetState
                                                                       .values
                                                                       .toSet(),
                                                                 )
@@ -899,7 +667,7 @@ class _ItemsPageState extends State<ItemsPage> with TickerProviderStateMixin {
                                                                 .style
                                                                 ?.textStyle
                                                                 ?.resolve(
-                                                                  MaterialState
+                                                                  WidgetState
                                                                       .values
                                                                       .toSet(),
                                                                 )
