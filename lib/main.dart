@@ -168,8 +168,8 @@ class _MainNavigationState extends State<MainNavigation> {
             label: "Items",
           ),
           NavigationDestination(
-            icon: Icon(Icons.barcode_reader_outlined),
-            selectedIcon: Icon(Icons.barcode_reader),
+            icon: Icon(Icons.qr_code_scanner_outlined),
+            selectedIcon: Icon(Icons.qr_code_scanner),
             label: "Barcode Scan",
           ),
           NavigationDestination(

@@ -1,11 +1,26 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import 'app_state.dart';
-import 'models.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
-final ImagePicker _picker = ImagePicker();
+// Simple grocery item model
+class GroceryItem {
+  final String id;
+  final String name;
+  final double price;
+  final String barcode;
+  final String? imageUrl;
+
+  GroceryItem({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.barcode,
+    this.imageUrl,
+  });
+}
+
+String makeId() => DateTime.now().millisecondsSinceEpoch.toString();
 
 class BarcodePage extends StatefulWidget {
   const BarcodePage({super.key});
@@ -15,305 +30,213 @@ class BarcodePage extends StatefulWidget {
 }
 
 class _BarcodePageState extends State<BarcodePage> {
-  bool _isProcessing = false;
-  String? _lastScannedCode;
+  final ImagePicker _picker = ImagePicker();
+  String? _barcode;
+  bool _scanning = false;
+  final MobileScannerController _scannerController = MobileScannerController();
 
-  Future<int?> _askForQuantity(BuildContext context, String itemName) async {
-    final formKey = GlobalKey<FormState>();
-    final quantityCtrl = TextEditingController(text: '1');
+  /// Opens fullscreen camera scanner
+  void _openCameraScanner() async {
+    setState(() => _scanning = true);
 
-    return showDialog<int?>(
+    await showDialog(
       context: context,
-      builder: (dialogContext) {
-        final theme = Theme.of(dialogContext);
-        return AlertDialog(
-          title: Text('How many $itemName?'),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: quantityCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Quantity',
-                hintText: 'Enter number of items',
-                prefixIcon: Icon(Icons.numbers),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Quantity cannot be empty';
-                }
-                final parsed = int.tryParse(value);
-                if (parsed == null || parsed <= 0) {
-                  return 'Enter a valid positive number';
-                }
-                return null;
-              },
-              autofocus: true,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'Cancel',
-                style: theme.textButtonTheme.style?.textStyle
-                    ?.resolve(WidgetState.values.toSet())
-                    ?.copyWith(color: theme.colorScheme.primary),
-              ),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  final quantity = int.tryParse(quantityCtrl.text) ?? 1;
-                  Navigator.pop(dialogContext, quantity);
+      barrierDismissible: false,
+      builder: (context) => Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            MobileScanner(
+              controller: _scannerController,
+              onDetect: (capture) {
+                final barcode = capture.barcodes.first.rawValue;
+                if (barcode != null && barcode.isNotEmpty) {
+                  Navigator.pop(context); // Close scanner
+                  setState(() {
+                    _scanning = false;
+                    _barcode = barcode;
+                  });
+                  _handleNewBarcode(barcode);
                 }
               },
-              child: Text(
-                'Add',
-                style: theme.filledButtonTheme.style?.textStyle
-                    ?.resolve(WidgetState.values.toSet())
-                    ?.copyWith(color: theme.colorScheme.onPrimary),
+            ),
+            // Scanner overlay similar to GCash style
+            Align(
+              alignment: Alignment.center,
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white, width: 3),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              left: 16,
+              child: IconButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() => _scanning = false);
+                },
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
               ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Future<void> _startManualScan() async {
-    final formKey = GlobalKey<FormState>();
-    final ctrl = TextEditingController();
-
-    final code = await showDialog<String?>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Barcode Scan'),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: ctrl,
-              decoration: const InputDecoration(
-                labelText: 'Enter barcode value',
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Barcode cannot be empty';
-                }
-                return null;
-              },
-              autofocus: true,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.pop(dialogContext, ctrl.text.trim());
-                }
-              },
-              child: const Text('Scan'),
-            ),
-          ],
-        );
-      },
+  /// Upload barcode image from gallery
+  void _uploadBarcode() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
     );
-
-    if (code == null || code.isEmpty || !mounted) return;
-
-    setState(() {
-      _isProcessing = true;
-    });
-
-    try {
-      final app = context.read<AppState>();
-      final matches = app.savedItems
-          .where((item) => item.barcode != null && item.barcode == code)
-          .toList();
-
-      if (matches.isNotEmpty) {
-        final match = matches.first;
-        final quantity = await _askForQuantity(context, match.name);
-        if (quantity != null && mounted) {
-          await app.addItem(
-            match.copyWith(
-              id: makeId(),
-              quantity: quantity,
-            ),
-          );
-          if (!mounted) return;
-          setState(() {
-            _lastScannedCode = code;
-          });
+    if (image != null) {
+      final result = await _scannerController.analyzeImage(image.path);
+      if (result?.barcodes.isNotEmpty ?? false) {
+        final code = result!.barcodes.first.rawValue ?? '';
+        if (code.isNotEmpty) {
+          setState(() => _barcode = code);
+          _handleNewBarcode(code);
+        } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Added ${quantity}x ${match.name} to your list'),
-            ),
-          );
-        }
-      } else {
-        final newItem = await showBarcodeDialog(context, code);
-        if (newItem != null && mounted) {
-          await app.addItem(newItem);
-          if (!mounted) return;
-          setState(() {
-            _lastScannedCode = code;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${newItem.name} saved and added to your list'),
-            ),
+            const SnackBar(content: Text('No barcode found in image')),
           );
         }
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+    }
+  }
+
+  void _handleNewBarcode(String code) async {
+    final newItem = await showBarcodeDialog(context, code);
+    if (newItem != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Added ${newItem.name} (${newItem.barcode})')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppState>(
-      builder: (context, app, _) {
-        final savedWithBarcode = app.savedItems
-            .where((item) => item.barcode != null && item.barcode!.isNotEmpty)
-            .toList();
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Grocery List'),
+        backgroundColor: Colors.green[300],
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.qr_code_2, size: 100, color: Colors.black54),
+            const SizedBox(height: 30),
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Row(
+            // Upload barcode
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.qr_code_scanner,
-                  color: Theme.of(context).colorScheme.primary,
+                _buildButton(
+                  icon: Icons.image_search,
+                  label: 'Upload Barcode',
+                  onTap: _uploadBarcode,
                 ),
-                const SizedBox(width: 8),
-                const Text('Barcode Scanner'),
+                const SizedBox(width: 30),
+                _buildButton(
+                  icon: Icons.keyboard,
+                  label: 'Input Barcode',
+                  onTap: () async {
+                    final codeController = TextEditingController();
+                    final code = await showDialog<String>(
+                      context: context,
+                      builder: (dialogContext) {
+                        return AlertDialog(
+                          title: const Text('Enter Barcode'),
+                          content: TextField(
+                            controller: codeController,
+                            decoration: const InputDecoration(
+                              hintText: 'Enter barcode manually',
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(
+                                  dialogContext,
+                                  codeController.text,
+                                );
+                              },
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                    if (code != null && code.isNotEmpty) {
+                      _handleNewBarcode(code);
+                    }
+                  },
+                ),
               ],
             ),
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-          ),
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Scan a barcode to quickly add items to your grocery list.',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: _isProcessing ? null : _startManualScan,
-                          icon: const Icon(Icons.qr_code_scanner),
-                          label: Text(
-                            _isProcessing ? 'Scanning…' : 'Scan / Enter Barcode',
-                          ),
-                        ),
-                        if (_lastScannedCode != null) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            'Last scanned: $_lastScannedCode',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+            const SizedBox(height: 30),
+            ElevatedButton.icon(
+              onPressed: _openCameraScanner,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Scan Barcode'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[300],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 14,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              Expanded(
-                child: savedWithBarcode.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Text(
-                            'No saved items with barcodes yet. Scan an item to save it for future trips.',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        itemCount: savedWithBarcode.length,
-                        itemBuilder: (context, index) {
-                          final item = savedWithBarcode[index];
-                          return Card(
-                            child: ListTile(
-                              leading: _buildItemThumbnail(item),
-                              title: Text(item.name),
-                              subtitle: Text(
-                                'Barcode: ${item.barcode}\nDefault price: ${peso(item.price)}',
-                              ),
-                              isThreeLine: true,
-                              trailing: IconButton(
-                                icon: const Icon(Icons.add_circle_outline),
-                                tooltip: 'Add to grocery list',
-                                onPressed: () async {
-                                  final quantity = await _askForQuantity(context, item.name);
-                                  if (quantity != null && context.mounted) {
-                                    final appState = context.read<AppState>();
-                                    await appState.addItem(
-                                      item.copyWith(
-                                        id: makeId(),
-                                        quantity: quantity,
-                                      ),
-                                    );
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Added ${quantity}x ${item.name} to your list',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildItemThumbnail(GroceryItem item) {
-    if (item.imageUrl == null || item.imageUrl!.isEmpty) {
-      return const CircleAvatar(child: Icon(Icons.inventory_2));
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Image.file(
-        File(item.imageUrl!),
-        width: 56,
-        height: 56,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const CircleAvatar(child: Icon(Icons.inventory_2)),
+  Widget _buildButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 120,
+        height: 120,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.black, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 50, color: Colors.black),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -326,6 +249,7 @@ Future<GroceryItem?> showBarcodeDialog(
   final newFormKey = GlobalKey<FormState>();
   final nameCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
   String? pickedImagePath;
 
   final result = await showDialog<GroceryItem?>(
@@ -341,11 +265,6 @@ Future<GroceryItem?> showBarcodeDialog(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Barcode: $code',
-                    style: theme.textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 16),
                   GestureDetector(
                     onTap: () async {
                       final XFile? image = await _picker.pickImage(
@@ -360,11 +279,10 @@ Future<GroceryItem?> showBarcodeDialog(
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                        color: theme.colorScheme.surface.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: theme.colorScheme.outline.withOpacity(0.5),
-                          width: 1.5,
                         ),
                       ),
                       child: pickedImagePath != null
@@ -375,25 +293,17 @@ Future<GroceryItem?> showBarcodeDialog(
                                 fit: BoxFit.cover,
                               ),
                             )
-                          : Icon(
-                              Icons.add_a_photo,
-                              size: 48,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
+                          : const Icon(Icons.add_a_photo, size: 40),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: nameCtrl,
                     decoration: const InputDecoration(labelText: 'Item Name'),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Item name cannot be empty';
-                      }
-                      return null;
-                    },
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'Required' : null,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: priceCtrl,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -403,16 +313,8 @@ Future<GroceryItem?> showBarcodeDialog(
                       prefixText: '₱ ',
                       labelText: 'Default Price',
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Price cannot be empty';
-                      }
-                      final parsed = double.tryParse(value.replaceAll(',', ''));
-                      if (parsed == null || parsed <= 0) {
-                        return 'Enter a valid positive price';
-                      }
-                      return null;
-                    },
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'Required' : null,
                   ),
                 ],
               ),
@@ -427,9 +329,8 @@ Future<GroceryItem?> showBarcodeDialog(
               onPressed: () {
                 if (newFormKey.currentState?.validate() ?? false) {
                   final name = nameCtrl.text.trim();
-                  final price = double.parse(
-                    priceCtrl.text.replaceAll(',', ''),
-                  );
+                  final price =
+                      double.tryParse(priceCtrl.text.replaceAll(',', '')) ?? 0;
                   Navigator.pop(
                     dialogContext,
                     GroceryItem(
@@ -442,13 +343,12 @@ Future<GroceryItem?> showBarcodeDialog(
                   );
                 }
               },
-              child: const Text('Save Item'),
+              child: const Text('Save'),
             ),
           ],
         );
       },
     ),
   );
-
   return result;
 }
