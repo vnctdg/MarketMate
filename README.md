@@ -29,22 +29,22 @@
 
 ## Installation Steps
 
-- **Clone the Repositoy**
+- **Clone the Repositoy**  
   bash.  
   git clone https://github.com/vnctdg/MarketMate.  
   cd marketmate.  
 
-- **Install Dependencies**
+- **Install Dependencies**  
   flutter SDK.  
   dart SDK.  
   bash.  
   flutter pub get.  
 
-- **Run the Application**
+- **Run the Application**  
   bash.  
   flutter run.  
 
-- **Troubleshooting**
+- **Troubleshooting**  
   bash.  
   flutter clean.  
   flutter pub get.  
