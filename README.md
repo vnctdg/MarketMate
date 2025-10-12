@@ -27,6 +27,31 @@
 
 ---
 
+## Installation Steps
+
+- **Clone the Repositoy**
+  bash
+  git clone https://github.com/vnctdg/MarketMate
+  cd marketmate
+
+- **Install Dependencies**
+  flutter SDK
+  dart SDK
+  bash
+  flutter pub get
+
+- **Run the Application**
+  bash
+  flutter run
+
+- **Troubleshooting**
+  bash
+  flutter clean
+  flutter pub get
+  flutter doctor
+
+---
+
 ## 🧑‍🤝‍🧑 🤝 Roles of Contributors
 
 - **Programmers:** Committing feature code, bug fixes, and refactoring.
@@ -45,5 +70,6 @@
   Galura, Bart Vincent D. | Ahmad, Saeed Sadeq Ali S.
 - **System Analyst:**  
   Galura, Bart Vincent D.
+
 
 ---
