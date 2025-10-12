@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
-import 'pages/grocery_page.dart';
-import 'pages/items_page.dart';
-import 'pages/history_page.dart';
+import '/grocery_page.dart';
+import '/items_page.dart';
+import '/history_page.dart';
+import '/ai_insights_page.dart';
 import 'theme.dart';
+import 'barcode_page.dart';
 
 void main() {
   runApp(const MarketMateApp());
@@ -34,7 +36,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<Offset> _slideAnimation;
@@ -48,16 +51,26 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
 
     _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.7, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
+      ),
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.3, 1.0, curve: Curves.easeOut)),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+          ),
+        );
 
     _controller.forward().whenComplete(() {
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainNavigation()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainNavigation()),
+        );
       }
     });
   }
@@ -102,7 +115,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     Text(
                       'Your Smart Grocery Assistant',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.8),
                       ),
                     ),
                   ],
@@ -129,6 +144,8 @@ class _MainNavigationState extends State<MainNavigation> {
   final _pages = const [
     GroceryPage(),
     ItemsPage(),
+    BarcodePage(),
+    AIInsightsPage(),
     HistoryPage(),
   ];
 
@@ -149,6 +166,16 @@ class _MainNavigationState extends State<MainNavigation> {
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2),
             label: "Items",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.qr_code_scanner_outlined),
+            selectedIcon: Icon(Icons.qr_code_scanner),
+            label: "Barcode Scan",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.psychology_outlined),
+            selectedIcon: Icon(Icons.psychology),
+            label: "AI Insights",
           ),
           NavigationDestination(
             icon: Icon(Icons.history_outlined),

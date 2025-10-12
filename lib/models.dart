@@ -15,7 +15,8 @@ String peso(num v) {
 class GroceryItem {
   final String id;
   final String name;
-  final double price;
+  final double price; // Price per unit
+  final int quantity; // Quantity multiplier for this item
   final String? barcode;
   final String? imageUrl;
 
@@ -23,14 +24,19 @@ class GroceryItem {
     required this.id,
     required this.name,
     required this.price,
+    this.quantity = 1, // Default quantity is 1
     this.barcode,
     this.imageUrl,
   });
+
+  // Helper method to get total price (price * quantity)
+  double get totalPrice => price * quantity;
 
   GroceryItem copyWith({
     String? id,
     String? name,
     double? price,
+    int? quantity,
     String? barcode,
     String? imageUrl,
   }) {
@@ -38,6 +44,7 @@ class GroceryItem {
       id: id ?? this.id,
       name: name ?? this.name,
       price: price ?? this.price,
+      quantity: quantity ?? this.quantity,
       barcode: barcode ?? this.barcode,
       imageUrl: imageUrl ?? this.imageUrl,
     );
@@ -47,6 +54,7 @@ class GroceryItem {
         'id': id,
         'name': name,
         'price': price,
+        'quantity': quantity,
         'barcode': barcode,
         'imageUrl': imageUrl,
       };
@@ -55,6 +63,7 @@ class GroceryItem {
         id: j['id'] ?? '',
         name: j['name'] ?? '',
         price: (j['price'] as num?)?.toDouble() ?? 0.0,
+        quantity: (j['quantity'] as int?) ?? 1, // Default to 1 for backward compatibility
         barcode: j['barcode'],
         imageUrl: j['imageUrl'],
       );
@@ -84,7 +93,7 @@ class GroceryListSnapshot {
     required this.createdAt,
     required this.items,
     required this.budget,
-  }) : total = items.fold(0.0, (s, e) => s + e.price);
+  }) : total = items.fold(0.0, (s, e) => s + e.totalPrice); // Use totalPrice to include quantity
 
   Map<String, dynamic> toJson() => {
         'id': id,
